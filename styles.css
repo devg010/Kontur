@@ -66,6 +66,7 @@ html{scroll-padding-top:calc(var(--head) + 1rem);scrollbar-gutter:stable}
 body{margin:0;background:var(--bg);color:var(--ink);font:500 1rem/1.62 var(--text);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 [hidden]{display:none!important}
 a{color:inherit;text-underline-offset:.24em}
+a,button,input,select,textarea,summary,label{-webkit-tap-highlight-color:transparent}
 button,input,select{font:inherit}
 button{cursor:pointer;color:inherit}
 button:disabled{cursor:default}

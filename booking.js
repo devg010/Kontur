@@ -260,7 +260,14 @@
     const now = new Date(), today = moscowDate.format(now);
     return {today, last:addDays(today,60), current:minutes(moscowTime.format(now))};
   }
-  function durationOf(row) { return durations[row.service] || 60; }
+  function serviceDuration(serviceName) {
+    return Object.hasOwn(durations,serviceName) ? durations[serviceName] : 60;
+  }
+  function durationOf(row) {
+    return Number.isInteger(row.durationMinutes) && row.durationMinutes > 0 && row.durationMinutes <= 660
+      ? row.durationMinutes
+      : serviceDuration(row.service);
+  }
   function freePeople(agenda, day, start, length, preferred) {
     const intervals = agenda.get(day) || [];
     return people.filter(person =>
@@ -285,12 +292,12 @@
   }
   function available(agenda, clock, day, chosenService, preferred) {
     if (!day || day < clock.today || day > clock.last) return [];
-    const length = durations[chosenService] || 60;
+    const length = serviceDuration(chosenService);
     const result = [];
     for (let start = 600; start + length <= 1260; start += 30) {
       if (day === clock.today && start <= clock.current) continue;
       const free = freePeople(agenda,day,start,length,preferred);
-      if (free.length) result.push({time:clockLabel(start),master:free[0]});
+      if (free.length) result.push({time:clockLabel(start),end:clockLabel(start+length),master:free[0]});
     }
     return result;
   }
@@ -333,7 +340,9 @@
     const previous = customer ? sessionStorage.getItem(receiptKey) : null;
     if (customer) sessionStorage.setItem(receiptKey,id);
     try {
-      localStorage.setItem(keyPrefix + id, JSON.stringify({...data,id,createdAt,status:'new'}));
+      localStorage.setItem(keyPrefix + id, JSON.stringify({
+        ...data,durationMinutes:serviceDuration(data.service),id,createdAt,status:'new'
+      }));
     } catch (error) {
       if (customer && previous === null) sessionStorage.removeItem(receiptKey);
       else if (customer) sessionStorage.setItem(receiptKey,previous);
@@ -393,7 +402,10 @@
     const selected = time.value, choices = slots(date.value);
     const valid = choices.some(option => option.time === selected);
     time.replaceChildren(new Option(choices.length ? 'Выберите время' : 'Выберите другую дату',''),
-      ...choices.map(option => new Option(option.time,option.time)));
+      ...choices.map(option => new Option(
+        service.value ? option.time + '–' + option.end : option.time,
+        option.time
+      )));
     time.value = valid ? selected : '';
     slotNote.textContent = choices.length ? '' : noWindows;
     if (external && selected && !valid) showConflict();
